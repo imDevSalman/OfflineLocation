@@ -77,5 +77,5 @@ class MainViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
         initialValue = emptyList()
-    ) */
+    )*/
 }

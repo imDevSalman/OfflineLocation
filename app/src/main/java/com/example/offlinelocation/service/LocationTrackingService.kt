@@ -14,18 +14,14 @@ import com.example.offlinelocation.utils.Constants.CHANNEL_ID
 import com.example.offlinelocation.utils.Constants.CHANNEL_NAME
 import com.example.offlinelocation.utils.Constants.CONTENT_TEXT
 import com.example.offlinelocation.utils.Constants.CONTENT_TITLE
-import com.example.offlinelocation.utils.DataStore
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
-
 
 @AndroidEntryPoint
 class LocationTrackingService : Service() {
@@ -34,9 +30,6 @@ class LocationTrackingService : Service() {
 
     @Inject
     lateinit var repository: LocationRepository
-
-    @Inject
-    lateinit var dataStore: DataStore
 
     override fun onCreate() {
         super.onCreate()
@@ -50,8 +43,7 @@ class LocationTrackingService : Service() {
     }
 
     private fun observeState() {
-        dataStore.tracking
-            .distinctUntilChanged()
+        repository.tracking
             .onEach { enabled ->
                 if (enabled) {
                     repository.startTracking()
@@ -75,7 +67,7 @@ class LocationTrackingService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             )
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }

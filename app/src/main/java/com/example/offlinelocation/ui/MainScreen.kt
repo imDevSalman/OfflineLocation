@@ -3,14 +3,18 @@ package com.example.offlinelocation.ui
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -75,7 +79,7 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         //Remove comment to configure location and room insertion intervals from UI (Milliseconds)
-        /*
+
         Text("Location Interval")
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -103,7 +107,7 @@ fun MainScreen(
                 Text("15s")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp)) */
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
             if (!tracking) {
@@ -149,10 +153,10 @@ fun MainScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyColumn {
                     items(roomFlow.size) {
-                        Text("${it + 1}.) ${roomFlow[it].latitude}")
+                        Text("${it + 1}.) ${roomFlow[it].latitude} - sync: ${roomFlow[it].synced}")
                     }
                 }
             }
-        } */
+        }*/
     }
 }

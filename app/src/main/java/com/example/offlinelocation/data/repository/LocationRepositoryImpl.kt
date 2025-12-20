@@ -26,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
@@ -36,7 +37,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,11 +54,10 @@ class LocationRepositoryImpl @Inject constructor(
     private val network = networkMonitor.isOnline
         .distinctUntilChanged()
         .stateIn(
-            scope, SharingStarted.Eagerly, true
+            scope, SharingStarted.Eagerly, false
         )
 
     private val sharedLocationFlow: SharedFlow<Location> = tracking
-        .distinctUntilChanged()
         .flatMapLatest { enabled ->
             if (!enabled) {
                 emptyFlow()
@@ -71,13 +70,14 @@ class LocationRepositoryImpl @Inject constructor(
                     }
             }
         }
-        .shareIn(scope, SharingStarted.WhileSubscribed(5_000))
+        .shareIn(scope, SharingStarted.Eagerly)
 
-    override val isOnline: Flow<Boolean>
+    override val isOnline: StateFlow<Boolean>
         get() = network
 
-    override val tracking: Flow<Boolean>
-        get() = dataStore.tracking
+    override val tracking: StateFlow<Boolean>
+        get() = dataStore.tracking.distinctUntilChanged()
+            .stateIn(scope, SharingStarted.Eagerly, false)
 
     override suspend fun setTracking(enabled: Boolean) {
         dataStore.setTracking(enabled)
@@ -126,9 +126,6 @@ class LocationRepositoryImpl @Inject constructor(
     override fun getAll(): Flow<List<LocationEntity>> = dao.getAll()
 
     override fun stopTracking() {
-        scope.launch {
-            dataStore.setTracking(false)
-        }
         trackingJob?.cancel()
         trackingJob = null
     }
