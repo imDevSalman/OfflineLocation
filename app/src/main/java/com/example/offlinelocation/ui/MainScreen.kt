@@ -79,7 +79,7 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         //Remove comment to configure location and room insertion intervals from UI (Milliseconds)
-
+        /*
         Text("Location Interval")
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -107,7 +107,7 @@ fun MainScreen(
                 Text("15s")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))*/
 
         Button(onClick = {
             if (!tracking) {

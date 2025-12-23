@@ -10,19 +10,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.collections.emptyList
 
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: LocationRepository
 ) : ViewModel() {
-//    private val MAX_ITEMS = 30
+    private val MAX_ITEMS = 30
 
     private val _permissionState =
         MutableStateFlow<LocationPermissionState>(LocationPermissionState.Denied)
@@ -66,16 +68,12 @@ class MainViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-    val locationFlow: StateFlow<List<Location>> = tracking.flatMapLatest { enabled ->
-        if (!enabled) {
-            flowOf(emptyList())
-        } else {
-            repository.observeLocation()
-                .scan(emptyList<Location>()) { acc, location -> (acc + location).takeLast(MAX_ITEMS) }
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = emptyList()
-    )*/
+    val locationFlow: StateFlow<List<Location>> =
+        repository.observeLocation().filterNotNull()
+            .scan(emptyList<Location>()) { acc, location -> (acc + location).takeLast(MAX_ITEMS) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )*/
 }

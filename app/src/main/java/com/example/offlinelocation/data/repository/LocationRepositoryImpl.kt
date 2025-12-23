@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import java.lang.Exception
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,39 +52,41 @@ class LocationRepositoryImpl @Inject constructor(
 ) : LocationRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var trackingJob: Job? = null
-    private val network = networkMonitor.isOnline
+    private val network: StateFlow<Boolean> = networkMonitor.isOnline
         .distinctUntilChanged()
         .stateIn(
             scope, SharingStarted.Eagerly, false
         )
+    override val isOnline: StateFlow<Boolean> = network
 
-    private val sharedLocationFlow: SharedFlow<Location> = tracking
-        .flatMapLatest { enabled ->
-            if (!enabled) {
-                emptyFlow()
-            } else {
-                dataStore.locationFlowInterval
-                    .distinctUntilChanged()
-                    .flatMapLatest { interval ->
-                        locationDataSource.locationFlow(interval)
-                            .map { it.toDomain() }
-                    }
+
+    init {
+        network
+            .filter { it }
+            .onEach {
+                triggerSync()
+            }
+            .launchIn(scope)
+    }
+
+    override val tracking: StateFlow<Boolean> = dataStore.tracking.distinctUntilChanged()
+        .stateIn(scope, SharingStarted.Eagerly, false)
+
+    private val location: StateFlow<Location?> = tracking.flatMapLatest { enabled ->
+        if (!enabled) emptyFlow()
+        else {
+            dataStore.locationFlowInterval.distinctUntilChanged().flatMapLatest { interval ->
+                locationDataSource.locationFlow(interval)
+                    .map { it.toDomain() }
             }
         }
-        .shareIn(scope, SharingStarted.Eagerly)
-
-    override val isOnline: StateFlow<Boolean>
-        get() = network
-
-    override val tracking: StateFlow<Boolean>
-        get() = dataStore.tracking.distinctUntilChanged()
-            .stateIn(scope, SharingStarted.Eagerly, false)
+    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     override suspend fun setTracking(enabled: Boolean) {
         dataStore.setTracking(enabled)
     }
 
-    override fun observeLocation(): Flow<Location> = sharedLocationFlow
+    override fun observeLocation(): StateFlow<Location?> = location
 
     override suspend fun setLocationFlowInterval(intervalMs: Long) {
         dataStore.setLocationFlowInterval(intervalMs)
@@ -97,23 +100,16 @@ class LocationRepositoryImpl @Inject constructor(
         trackingJob?.cancel()
 
         trackingJob =
-            sharedLocationFlow.combine(isOnline) { loc, online -> loc to online }
-                .filter { (_, online) -> !online }.map { (loc, _) -> loc.toEntity() }
+            combine(location, isOnline) { loc, online -> loc to online }
+                .filter { it.first != null && !it.second }.map { it.first!!.toEntity() }
                 .let { flow ->
                     dataStore.roomBatchInterval
                         .distinctUntilChanged()
                         .flatMapLatest { interval ->
                             flow.batch(interval)
                         }
-                }.onEach { entities -> dao.insertAll(entities) }
+                }.onEach { entities -> if (entities.isNotEmpty()) dao.insertAll(entities) }
                 .launchIn(scope)
-
-        network
-            .filter { it }
-            .onEach {
-                triggerSync()
-            }
-            .launchIn(scope)
     }
 
 

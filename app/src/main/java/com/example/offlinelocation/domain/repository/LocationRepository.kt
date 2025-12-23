@@ -11,7 +11,7 @@ interface LocationRepository {
     suspend fun setTracking(enabled: Boolean)
     suspend fun setLocationFlowInterval(intervalMs: Long)
     suspend fun setRoomBatchInterval(intervalMs: Long)
-    fun observeLocation(): Flow<Location>
+    fun observeLocation(): StateFlow<Location?>
     fun startTracking()
     fun stopTracking()
     suspend fun save(locations: List<Location>)
